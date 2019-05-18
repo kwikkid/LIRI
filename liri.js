@@ -4,6 +4,7 @@ var Spotify = require("node-spotify-api");
 //node-spotify-api package will give us a constructor//
 var spotify = new Spotify(keys.spotify);
 var fs = require("fs");
+var bandsAxios = require("axios");
 //spotify constructors expect keys in order to work.We're creating an instance with our own keys//
 
 var command = process.argv[2];
@@ -11,41 +12,12 @@ var moment = require("moment");
 moment().format();
 
 function liri() {
-	if (command === "concert-this") {
-		var artist = process.argv[3];
-		var bandsAxios = require("axios");
-		bandsAxios
-			.get(
-				"https://rest.bandsintown.com/artists/" +
-					artist +
-					"/events?app_id=codingbootcamp"
-			)
-			.then(function(response) {
-				for (var i = 0; i < response.data.length; i++) {
-					var date = moment(response.data[i].datetime).format(
-						"MM-DD-YYYY"
-					);
-					console.log(
-						date,
-						response.data[i].venue.name,
-						response.data[i].venue.city,
-						response.data[i].venue.country
-					);
-				}
-
-				// console.log(response.venue[key]);
-			});
-	}
-
 	if (command === "spotify-this-song") {
-		var arg2 = process.argv.slice(3).join(" ");
-		spotifyThisSongFunction(arg2);
+		var song = process.argv.slice(3).join(" ");
+		spotifyThisSongFunction(song);
 	}
 
 	function spotifyThisSongFunction(songName) {
-		// var song = process.argv.slice(3).join(" ");
-		//add something here to splice//
-
 		spotify.search({ type: "track", query: songName }, function(err, data) {
 			if (err) {
 				return console.log("Error");
@@ -59,9 +31,65 @@ function liri() {
 			}
 		});
 	}
+	if (command === "movie-this") {
+		var movie = process.argv.slice(3).join(" ");
+		omdbFunction(movie);
+	}
 
-	var omdbFunction = function(movie) {
-		if (movie !== undefined) {
+	if (command === "do-what-it-says") {
+		fs.readFile("random.txt", "utf8", function(err, response) {
+			if (err) {
+				return console.log(err);
+			}
+
+			console.log(response);
+			var dataAfterSplit = response.split(",");
+			console.log("data after split: " + dataAfterSplit);
+			if (dataAfterSplit[0] === "spotify-this-song") {
+				spotifyThisSongFunction(dataAfterSplit[1]);
+			}
+			if (dataAfterSplit[0] === "movie-this") {
+				var arg2 = dataAfterSplit[1];
+				omdbFunction(arg2);
+			}
+			if (dataAfterSplit[0] === "concert-this") {
+				console.log("artist after split: " + dataAfterSplit[1]);
+				concerts(dataAfterSplit[1]);
+			}
+		});
+	}
+
+	if (command === "concert-this") {
+		var artist = process.argv.slice(3).join(" ");
+		concerts(artist);
+	}
+	function concerts(artistName) {
+		// var bandsAxios = require("axios");
+		console.log("artists inside concerts function: " + artistName);
+		bandsAxios
+			.get(
+				"https://rest.bandsintown.com/artists/" +
+					artistName +
+					"/events?app_id=codingbootcamp"
+			)
+			.then(function(response) {
+				for (var i = 0; i < response.data.length; i++) {
+					console.log("response.data:" + response.data.length);
+					var date = moment(response.data[i].datetime).format(
+						"MM-DD-YYYY"
+					);
+					console.log(
+						date,
+						response.data[i].venue.name,
+						response.data[i].venue.city,
+						response.data[i].venue.country
+					);
+				}
+			});
+	}
+
+	function omdbFunction(movie) {
+		if (movie !== "") {
 			var omdbAxios = require("axios");
 			omdbAxios
 				.get(
@@ -88,6 +116,9 @@ function liri() {
 							"\nActors: " +
 							response.data.Actors
 					);
+				})
+				.catch(function(error) {
+					console.log(error.response);
 				});
 		} else {
 			var omdbAxios = require("axios");
@@ -116,46 +147,8 @@ function liri() {
 					);
 				});
 		}
-	};
-}
-
-if (command === "movie-this") {
-	var movie = process.argv.slice(3).join(" ");
-	omdbFunction(movie);
-}
-if (command === "do-what-it-says") {
-	fs.readFile("random.txt", "utf8", function(err, response) {
-		if (err) {
-			return console.log(err);
-		}
-
-		console.log(response);
-		var dataAfterSplit = response.split(",");
-		console.log("data after split: " + dataAfterSplit);
-		if (dataAfterSplit[0] === "spotify-this-song") {
-			spotifyThisSongFunction(dataAfterSplit[1]);
-		}
-		if (dataAfterSplit[0] === "movie-this") {
-			omdbFunction(dataAfterSplit[1]);
-		}
-	});
+	}
 }
 // how to return "Mr. Nobody" if process.
 
 liri();
-
-/*
- https://rest.bandsintown.com/artists/" + artist + "/events?app_id=codingbootcamp"
-
- name of the venue
- venue location
- date of the event MM/DD/YYYY
- */
-
-/*
- https://rest.bandsintown.com/artists/" + artist + "/events?app_id=codingbootcamp"
-
- name of the venue
- venue location
- date of the event MM/DD/YYYY
- */
